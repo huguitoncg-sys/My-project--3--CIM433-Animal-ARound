@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<QCARConfig>
+  <Tracking>
+    <ImageTarget name="img_3292" size="0.063000 0.108061" />
+    <ImageTarget name="img_3293" size="0.063000 0.121256" />
+    <ImageTarget name="img_3294" size="0.063000 0.039433" />
+    <ImageTarget name="img_3295" size="0.063000 0.027305" />
+    <ImageTarget name="img_32711211" size="0.063000 0.087404" />
+    <ImageTarget name="c952ab94-82b2-490f-b3da-8ae545918049_rgb" size="0.063000 0.041262" />
+    <ImageTarget name="aee5ac0c-8c7b-4baf-9072-991da866dcdf_rgb" size="0.063000 0.103367" />
+    <ImageTarget name="untitleddesign1" size="0.215000 0.120937" />
+  </Tracking>
+</QCARConfig>
