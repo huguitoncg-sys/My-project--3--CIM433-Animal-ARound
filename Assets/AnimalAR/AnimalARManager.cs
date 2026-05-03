@@ -15,7 +15,10 @@ public class AnimalARManager : MonoBehaviour
         Interaction
     }
 
+    [Header("Animal Setup")]
     public AnimalData[] animals;
+
+    [Header("Scene References")]
     public UIManager uiManager;
     public PlacementController placementController;
 
@@ -27,16 +30,20 @@ public class AnimalARManager : MonoBehaviour
     private GameObject currentCardAnimalInstance;
     private Transform currentHomeTransform;
     private bool animalScannedThisRound;
+
     private int careScore;
-    private bool gaveFish;
-    private bool addedIce;
+
+    private bool farmDiscovered;
     private bool arcticDiscovered;
-    private bool desertDiscovered;
+    private bool forestDiscovered;
+    private bool jungleDiscovered;
 
     private void Awake()
     {
-        if (Instance == null) Instance = this;
-        else Destroy(gameObject);
+        if (Instance == null)
+            Instance = this;
+        else
+            Destroy(gameObject);
     }
 
     private void Start()
@@ -53,7 +60,8 @@ public class AnimalARManager : MonoBehaviour
 
     public void OnAnimalTargetFound(string animalId, Transform animalTargetTransform)
     {
-        if (animalScannedThisRound) return;
+        if (animalScannedThisRound)
+            return;
 
         AnimalData data = GetAnimalData(animalId);
 
@@ -83,6 +91,7 @@ public class AnimalARManager : MonoBehaviour
 
             currentCardAnimalInstance.transform.localPosition = Vector3.zero;
             currentCardAnimalInstance.transform.localRotation = Quaternion.identity;
+
             SetAnimalTapEnabled(false);
         }
         else
@@ -92,9 +101,9 @@ public class AnimalARManager : MonoBehaviour
 
         if (uiManager != null)
         {
-            uiManager.SetInstruction("Step 2: Scan the penguin's home.");
+            uiManager.SetInstruction("Step 2: Scan the correct habitat for the " + data.displayName + ".");
             uiManager.SetFeedback("");
-            uiManager.SetInteractionHint("Tap points to create a path.");
+            uiManager.SetInteractionHint("Scan a habitat card.");
             uiManager.ShowInteractionHint(false);
             uiManager.SetPathButtonsVisible(false);
             uiManager.SetDecisionButtonsVisible(false);
@@ -110,11 +119,7 @@ public class AnimalARManager : MonoBehaviour
     public void OnHomeTargetFound(string homeId)
     {
         ShowHome(homeId);
-
-        if (homeId == "arctic")
-            arcticDiscovered = true;
-        else if (homeId == "desert")
-            desertDiscovered = true;
+        MarkHomeDiscovered(homeId);
 
         if (CurrentAnimalData == null)
         {
@@ -127,8 +132,8 @@ public class AnimalARManager : MonoBehaviour
             if (uiManager != null)
             {
                 uiManager.SetInstruction("Step 3: Tap the habitat you want to choose.");
-                uiManager.SetFeedback("Found " + GetHomeDisplayName(homeId) + ". Tap a habitat to select it.");
-                uiManager.SetInteractionHint("Look at the AR habitat, then tap Arctic or Desert.");
+                uiManager.SetFeedback("Found " + GetHomeDisplayName(homeId) + ".\nTap a habitat to select it.");
+                uiManager.SetInteractionHint("Look at the AR habitat, then tap it to select.");
                 uiManager.ShowInteractionHint(true);
                 uiManager.SetPathButtonsVisible(false);
                 uiManager.SetDecisionButtonsVisible(false);
@@ -148,7 +153,7 @@ public class AnimalARManager : MonoBehaviour
         if (CurrentAnimalData == null)
         {
             if (uiManager != null)
-                uiManager.SetFeedback("Scan the penguin first, then choose a home.");
+                uiManager.SetFeedback("Scan an animal first, then choose a habitat.");
 
             return;
         }
@@ -157,6 +162,7 @@ public class AnimalARManager : MonoBehaviour
             return;
 
         bool isCorrectHome = homeId == CurrentAnimalData.correctHomeId;
+
         Transform selectedHomeTransform = ShowHome(homeId);
 
         CurrentHomeId = homeId;
@@ -164,8 +170,8 @@ public class AnimalARManager : MonoBehaviour
 
         if (uiManager != null)
         {
-            uiManager.SetInstruction("Selected: " + GetHomeDisplayName(homeId) + ". Is this a safe home?");
-            uiManager.SetInteractionHint("Look at the scanner clues, then choose Safe Home or Not Safe.");
+            uiManager.SetInstruction("Selected: " + GetHomeDisplayName(homeId) + ".\nIs this a safe home?");
+            uiManager.SetInteractionHint("Choose Safe Home or Not Safe.");
             uiManager.ShowInteractionHint(true);
             uiManager.SetPathButtonsVisible(false);
             uiManager.SetDecisionButtonsVisible(true);
@@ -179,8 +185,11 @@ public class AnimalARManager : MonoBehaviour
 
     public void ChooseSafeHome()
     {
-        if (CurrentState != GameState.EnvironmentDecision) return;
-        if (CurrentAnimalData == null) return;
+        if (CurrentState != GameState.EnvironmentDecision)
+            return;
+
+        if (CurrentAnimalData == null)
+            return;
 
         if (CurrentHomeId == CurrentAnimalData.correctHomeId)
         {
@@ -198,30 +207,29 @@ public class AnimalARManager : MonoBehaviour
                 uiManager.SetProgressStep(1);
             }
 
-            if (currentCardAnimalInstance != null)
-            {
-                AnimalReaction reaction = currentCardAnimalInstance.GetComponentInChildren<AnimalReaction>();
-
-                if (reaction != null)
-                    reaction.PlayWrongReaction();
-            }
+            PlayWrongReaction();
 
             CurrentHomeId = null;
             currentHomeTransform = null;
+
             SetState(GameState.WaitingForHome);
         }
     }
 
     public void ChooseNotSafe()
     {
-        if (CurrentState != GameState.EnvironmentDecision) return;
-        if (CurrentAnimalData == null) return;
+        if (CurrentState != GameState.EnvironmentDecision)
+            return;
+
+        if (CurrentAnimalData == null)
+            return;
 
         if (CurrentHomeId == CurrentAnimalData.correctHomeId)
         {
             if (uiManager != null)
             {
-                uiManager.SetFeedback("Look again! The arctic has cold, fish, and ice for the penguin.");
+                uiManager.SetFeedback("Look again! The " + GetHomeDisplayName(CurrentHomeId) +
+                                      " is the correct habitat for the " + CurrentAnimalData.displayName + ".");
             }
 
             return;
@@ -229,8 +237,8 @@ public class AnimalARManager : MonoBehaviour
 
         if (uiManager != null)
         {
-            uiManager.SetInstruction("Good rescue thinking! Find the icy home.");
-            uiManager.SetFeedback("That habitat is not safe for a penguin.");
+            uiManager.SetInstruction("Good thinking! Find the correct habitat for the " + CurrentAnimalData.displayName + ".");
+            uiManager.SetFeedback("That habitat is not safe for the " + CurrentAnimalData.displayName + ".");
             uiManager.SetDecisionButtonsVisible(false);
             uiManager.ShowScanner(false);
             uiManager.ShowInteractionHint(false);
@@ -239,16 +247,22 @@ public class AnimalARManager : MonoBehaviour
 
         CurrentHomeId = null;
         currentHomeTransform = null;
+
         SetState(GameState.WaitingForHome);
     }
 
     public void GoHome()
     {
-        if (CurrentState != GameState.PathBuilding) return;
-        if (placementController == null || currentCardAnimalInstance == null) return;
+        if (CurrentState != GameState.PathBuilding)
+            return;
+
+        if (placementController == null || currentCardAnimalInstance == null)
+            return;
 
         AnimalMoveToHome mover = currentCardAnimalInstance.GetComponentInChildren<AnimalMoveToHome>();
-        if (mover == null) return;
+
+        if (mover == null)
+            return;
 
         if (uiManager != null)
         {
@@ -258,7 +272,9 @@ public class AnimalARManager : MonoBehaviour
         }
 
         currentCardAnimalInstance.transform.SetParent(null, true);
+
         SetState(GameState.MovingHome);
+
         placementController.SendAnimalHome(mover);
     }
 
@@ -272,68 +288,29 @@ public class AnimalARManager : MonoBehaviour
     {
         if (uiManager != null)
         {
-            uiManager.SetInstruction("Step 5: Help the penguin settle in.");
-            uiManager.SetFeedback("Choose two things the penguin needs.");
-            uiManager.SetInteractionHint("");
-            uiManager.ShowInteractionHint(false);
+            uiManager.SetInstruction("Mission complete!");
+            uiManager.SetFeedback(CurrentAnimalData.displayName + " made it safely to the " +
+                                  GetHomeDisplayName(CurrentAnimalData.correctHomeId) + " habitat.");
+            uiManager.SetInteractionHint("Tap the animal for a celebration.");
+            uiManager.ShowInteractionHint(true);
             uiManager.SetPathButtonsVisible(false);
+            uiManager.SetDecisionButtonsVisible(false);
+            uiManager.SetCareButtonsVisible(false);
             uiManager.ShowScanner(false);
-            uiManager.ShowCareChallenge(careScore);
+            uiManager.ShowCarePanel(false);
             uiManager.SetProgressStep(4);
         }
 
-        SetAnimalTapEnabled(false);
-        SetState(GameState.CareChallenge);
+        SetAnimalTapEnabled(true);
+        SetState(GameState.Interaction);
     }
 
     public void ChooseCareItem(string itemId)
     {
-        if (CurrentState != GameState.CareChallenge) return;
-
-        if (itemId == "fish")
-        {
-            if (!gaveFish)
-            {
-                gaveFish = true;
-                careScore++;
-                PlayHappyReaction();
-                SetCareFeedback("Great! Penguins eat fish.");
-            }
-            else
-            {
-                SetCareFeedback("You already gave the penguin fish. Pick one more helper item.");
-            }
-        }
-        else if (itemId == "ice")
-        {
-            if (!addedIce)
-            {
-                addedIce = true;
-                careScore++;
-                PlayHappyReaction();
-                SetCareFeedback("Nice! Ice gives the penguin a cold place to rest.");
-            }
-            else
-            {
-                SetCareFeedback("You already added ice. Pick another helpful item.");
-            }
-        }
-        else if (itemId == "sun")
-        {
-            SetCareFeedback("Too warm! Penguins need cold places.");
-            PlayWrongReaction();
-        }
-        else if (itemId == "cactus")
-        {
-            SetCareFeedback("A cactus belongs in the desert, not the arctic.");
-            PlayWrongReaction();
-        }
-
+        // This method is kept so your old UI buttons do not break.
+        // You can redesign the care challenge later for each animal.
         if (uiManager != null)
-            uiManager.UpdateCareMeter(careScore);
-
-        if (careScore >= 2)
-            CompleteMission();
+            uiManager.SetFeedback("Care challenge can be customized later for each animal.");
     }
 
     public void ResetSession()
@@ -348,12 +325,14 @@ public class AnimalARManager : MonoBehaviour
         CurrentAnimalId = null;
         CurrentHomeId = null;
         currentHomeTransform = null;
+
         animalScannedThisRound = false;
         careScore = 0;
-        gaveFish = false;
-        addedIce = false;
+
+        farmDiscovered = false;
         arcticDiscovered = false;
-        desertDiscovered = false;
+        forestDiscovered = false;
+        jungleDiscovered = false;
 
         HideAllHomes();
 
@@ -367,7 +346,7 @@ public class AnimalARManager : MonoBehaviour
         {
             uiManager.SetInstruction("Step 1: Scan an animal card.");
             uiManager.SetFeedback("");
-            uiManager.SetInteractionHint("Tap points to create a path.");
+            uiManager.SetInteractionHint("Scan one of the animal cards.");
             uiManager.ShowInteractionHint(false);
             uiManager.SetPathButtonsVisible(false);
             uiManager.SetDecisionButtonsVisible(false);
@@ -382,7 +361,8 @@ public class AnimalARManager : MonoBehaviour
 
     private void WireButtons()
     {
-        if (uiManager == null) return;
+        if (uiManager == null)
+            return;
 
         if (uiManager.goHomeButton != null)
         {
@@ -407,35 +387,11 @@ public class AnimalARManager : MonoBehaviour
             uiManager.notSafeButton.onClick.RemoveListener(ChooseNotSafe);
             uiManager.notSafeButton.onClick.AddListener(ChooseNotSafe);
         }
-
-        if (uiManager.fishButton != null)
-        {
-            uiManager.fishButton.onClick.RemoveAllListeners();
-            uiManager.fishButton.onClick.AddListener(() => ChooseCareItem("fish"));
-        }
-
-        if (uiManager.iceButton != null)
-        {
-            uiManager.iceButton.onClick.RemoveAllListeners();
-            uiManager.iceButton.onClick.AddListener(() => ChooseCareItem("ice"));
-        }
-
-        if (uiManager.sunButton != null)
-        {
-            uiManager.sunButton.onClick.RemoveAllListeners();
-            uiManager.sunButton.onClick.AddListener(() => ChooseCareItem("sun"));
-        }
-
-        if (uiManager.cactusButton != null)
-        {
-            uiManager.cactusButton.onClick.RemoveAllListeners();
-            uiManager.cactusButton.onClick.AddListener(() => ChooseCareItem("cactus"));
-        }
     }
 
     private void HideAllHomes()
     {
-        HomeTargetHandler[] allHomes = FindObjectsByType<HomeTargetHandler>();
+        HomeTargetHandler[] allHomes = FindObjectsByType<HomeTargetHandler>(FindObjectsSortMode.None);
 
         foreach (HomeTargetHandler home in allHomes)
         {
@@ -445,7 +401,7 @@ public class AnimalARManager : MonoBehaviour
 
     private Transform ShowHome(string homeId)
     {
-        HomeTargetHandler[] allHomes = FindObjectsByType<HomeTargetHandler>();
+        HomeTargetHandler[] allHomes = FindObjectsByType<HomeTargetHandler>(FindObjectsSortMode.None);
 
         foreach (HomeTargetHandler home in allHomes)
         {
@@ -453,7 +409,11 @@ public class AnimalARManager : MonoBehaviour
             {
                 home.PrepareHomeVisualForCard();
                 home.ShowHomeVisual();
-                return home.homeVisual != null ? home.homeVisual.transform : home.transform;
+
+                if (home.homeVisual != null)
+                    return home.homeVisual.transform;
+
+                return home.transform;
             }
         }
 
@@ -462,9 +422,11 @@ public class AnimalARManager : MonoBehaviour
 
     private void SetAnimalTapEnabled(bool enabled)
     {
-        if (currentCardAnimalInstance == null) return;
+        if (currentCardAnimalInstance == null)
+            return;
 
         AnimalTapInteraction tap = currentCardAnimalInstance.GetComponentInChildren<AnimalTapInteraction>();
+
         if (tap != null)
             tap.SetInteractionEnabled(enabled);
     }
@@ -474,7 +436,7 @@ public class AnimalARManager : MonoBehaviour
         if (currentHomeTransform == null)
         {
             if (uiManager != null)
-                uiManager.SetFeedback("Tap the correct home again so the penguin knows where to go.");
+                uiManager.SetFeedback("Tap the correct home again so the animal knows where to go.");
 
             SetState(GameState.WaitingForHome);
             return;
@@ -482,9 +444,10 @@ public class AnimalARManager : MonoBehaviour
 
         if (uiManager != null)
         {
-            uiManager.SetInstruction("Step 4: Build a rescue path to the icy home.");
+            uiManager.SetInstruction("Step 4: Build a rescue path to the " +
+                                     GetHomeDisplayName(CurrentAnimalData.correctHomeId) + ".");
             uiManager.SetFeedback(CurrentAnimalData.correctHomeMessage);
-            uiManager.SetInteractionHint("Tap between the penguin and home to add waypoint markers.");
+            uiManager.SetInteractionHint("Tap between the animal and habitat to add waypoint markers.");
             uiManager.ShowInteractionHint(true);
             uiManager.SetDecisionButtonsVisible(false);
             uiManager.SetPathButtonsVisible(true);
@@ -496,64 +459,78 @@ public class AnimalARManager : MonoBehaviour
             placementController.BeginPathBuilding(currentCardAnimalInstance, currentHomeTransform);
 
         SetAnimalTapEnabled(false);
+
         SetState(GameState.PathBuilding);
-    }
-
-    private void SetCareFeedback(string message)
-    {
-        if (uiManager != null)
-            uiManager.SetFeedback(message);
-    }
-
-    private void PlayHappyReaction()
-    {
-        PlayWrongReaction();
     }
 
     private void PlayWrongReaction()
     {
-        if (currentCardAnimalInstance == null) return;
+        if (currentCardAnimalInstance == null)
+            return;
 
         AnimalReaction reaction = currentCardAnimalInstance.GetComponentInChildren<AnimalReaction>();
+
         if (reaction != null)
             reaction.PlayWrongReaction();
     }
 
-    private void CompleteMission()
+    private void MarkHomeDiscovered(string homeId)
     {
-        if (uiManager != null)
-        {
-            uiManager.SetInstruction("Mission complete!");
-            uiManager.SetFeedback("Penguin fact: Penguins are birds that swim with flippers.");
-            uiManager.SetCareButtonsVisible(false);
-            uiManager.ShowCarePanel(false);
-            uiManager.SetInteractionHint("Tap the penguin for a celebration run.");
-            uiManager.ShowInteractionHint(true);
-        }
-
-        SetAnimalTapEnabled(true);
-        SetState(GameState.Interaction);
+        if (homeId == "farm")
+            farmDiscovered = true;
+        else if (homeId == "arctic")
+            arcticDiscovered = true;
+        else if (homeId == "forest")
+            forestDiscovered = true;
+        else if (homeId == "jungle")
+            jungleDiscovered = true;
     }
 
     private void UpdateDiscoveryFeedback()
     {
-        if (uiManager == null || CurrentState == GameState.MovingHome || CurrentState == GameState.CareChallenge || CurrentState == GameState.Interaction) return;
+        if (uiManager == null)
+            return;
+
+        if (CurrentState == GameState.MovingHome ||
+            CurrentState == GameState.CareChallenge ||
+            CurrentState == GameState.Interaction)
+            return;
 
         string discovered = "Found: ";
-        discovered += animalScannedThisRound ? "Penguin" : "scan penguin";
-        discovered += arcticDiscovered ? ", Arctic" : "";
-        discovered += desertDiscovered ? ", Desert" : "";
+
+        if (animalScannedThisRound && CurrentAnimalData != null)
+            discovered += CurrentAnimalData.displayName;
+        else
+            discovered += "scan an animal";
+
+        if (farmDiscovered)
+            discovered += ", Farm";
+
+        if (arcticDiscovered)
+            discovered += ", Arctic";
+
+        if (forestDiscovered)
+            discovered += ", Forest";
+
+        if (jungleDiscovered)
+            discovered += ", Jungle";
 
         uiManager.SetFeedback(discovered);
     }
 
     private string GetHomeDisplayName(string homeId)
     {
+        if (homeId == "farm")
+            return "Farm";
+
         if (homeId == "arctic")
             return "Arctic";
 
-        if (homeId == "desert")
-            return "Desert";
+        if (homeId == "forest")
+            return "Forest";
+
+        if (homeId == "jungle")
+            return "Jungle";
 
         return string.IsNullOrEmpty(homeId) ? "Habitat" : homeId;
     }
